@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Servidor MCP: genera un código QR con estilo a partir de un link. Sin base de datos, sin secretos, sin autenticación."
 requires-python = ">=3.10"
 dependencies = [
-    "fastmcp[apps]==4.0.5",
+    "fastmcp==4.0.5",
     "qrcode[pil]>=8.0",
 ]
 

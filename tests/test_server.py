@@ -3,15 +3,14 @@ from fastmcp import Client
 from qrmcp.server import mcp
 
 
-async def test_generar_qr_devuelve_tarjeta_con_imagen():
+async def test_generar_qr_devuelve_imagen_png():
     async with Client(mcp) as client:
         result = await client.call_tool("generar_qr", {"link": "https://claude.com"})
     assert not result.is_error
-    vista = result.structured_content["view"]
-    assert vista["type"] == "Div"
-    # La imagen debe ir embebida como data URI PNG, visible sin expandir nada.
-    contenido = str(vista)
-    assert "data:image/png;base64," in contenido
+    assert len(result.content) == 1
+    bloque = result.content[0]
+    assert bloque.type == "image"
+    assert bloque.mime_type == "image/png"
 
 
 async def test_generar_qr_agrega_https_si_falta_esquema():
