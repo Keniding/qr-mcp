@@ -3,24 +3,17 @@ import re
 from typing import Annotated
 
 import qrcode
-from fastmcp import FastMCP
+from fastmcp import FastMCP, FastMCPApp
 from fastmcp.exceptions import ToolError
-from fastmcp.utilities.types import Image
-from mcp.types import ToolAnnotations
+from fastmcp.utilities.types import Image as FastMCPImage
+from prefab_ui.components import Column, Heading, Image as PrefabImage, Link, Text
 from pydantic import Field
 from qrcode.constants import ERROR_CORRECT_H
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.colormasks import SolidFillColorMask
 from qrcode.image.styles.moduledrawers.pil import RoundedModuleDrawer
 
-mcp = FastMCP(
-    "qr",
-    instructions=(
-        "Genera códigos QR con estilo a partir de un link. No requiere base "
-        "de datos ni credenciales; cualquiera puede usarlo."
-    ),
-    mask_error_details=True,
-)
+app = FastMCPApp("qr")
 
 HEX_COLOR = re.compile(r"^#?[0-9a-fA-F]{6}$")
 
@@ -44,7 +37,7 @@ def _normalizar_url(url: str) -> str:
     return url
 
 
-@mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+@app.ui()
 def generar_qr(
     link: Annotated[str, Field(description="El link o texto a codificar en el QR.")],
     color: Annotated[
@@ -53,11 +46,10 @@ def generar_qr(
     fondo: Annotated[
         str, Field(description="Color de fondo del QR, en hexadecimal (#RRGGBB).")
     ] = "#FFFFFF",
-) -> Image:
+):
     """Genera un código QR con estilo (módulos redondeados) a partir de un
-    link y lo devuelve como imagen para mostrarla directamente en el chat.
-    Úsala cuando te pidan un QR para una URL, un enlace de pago, una tarjeta
-    de contacto, etc."""
+    link y lo muestra directamente en el chat. Úsala cuando te pidan un QR
+    para una URL, un enlace de pago, una tarjeta de contacto, etc."""
     url = _normalizar_url(link)
     color_rgb = _hex_a_rgb(color, "color")
     fondo_rgb = _hex_a_rgb(fondo, "fondo")
@@ -74,4 +66,24 @@ def generar_qr(
 
     buffer = io.BytesIO()
     imagen.save(buffer, format="PNG")
-    return Image(data=buffer.getvalue(), format="png")
+    data_uri = FastMCPImage(data=buffer.getvalue(), format="png").to_data_uri()
+
+    return Column(
+        gap=12,
+        children=[
+            Heading("Código QR", level=3),
+            PrefabImage(src=data_uri, alt=f"Código QR para {url}", width="280px"),
+            Text(Link(url, href=url)),
+        ],
+    )
+
+
+mcp = FastMCP(
+    "qr",
+    instructions=(
+        "Genera códigos QR con estilo a partir de un link. No requiere base "
+        "de datos ni credenciales; cualquiera puede usarlo."
+    ),
+    mask_error_details=True,
+)
+mcp.add_provider(app)
